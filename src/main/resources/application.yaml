@@ -1,0 +1,38 @@
+spring:
+  application:
+    name: microsaap
+
+  datasource:
+    url: jdbc:mysql://localhost:3306/microsaap_db?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+    username: root
+    password: admin
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: none
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+    baseline-version: 0
+    validate-on-migrate: true
+    clean-disabled: false
+
+app:
+  jwt:
+    secret: mySecretKey1234567890abcdefghijklmnopqrstuvwxyz
+    expiration: 86400000 # 24 horas en milisegundos
+
+logging:
+  level:
+    com.owlcode.microsaap: INFO
+    org.springframework.security: WARN
+    org.flywaydb: DEBUG
+    org.springframework.boot.autoconfigure.flyway: DEBUG
+

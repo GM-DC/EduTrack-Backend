@@ -1,0 +1,93 @@
+package com.owlcode.microsaap.common.config
+
+import org.flywaydb.core.Flyway
+import org.slf4j.LoggerFactory
+import org.springframework.boot.context.event.ApplicationReadyEvent
+import org.springframework.context.event.EventListener
+import org.springframework.stereotype.Component
+import org.springframework.core.annotation.Order
+import javax.sql.DataSource
+
+/**
+ * Componente para verificar y forzar la ejecución de migraciones Flyway
+ */
+@Component
+@Order(50) // Ejecutar antes que DatabaseTableCreator
+class FlywayMigrationLogger(
+    private val dataSource: DataSource
+) {
+
+    private val logger = LoggerFactory.getLogger(FlywayMigrationLogger::class.java)
+
+    @EventListener(ApplicationReadyEvent::class)
+    fun verifyFlywayMigrations() {
+        try {
+            logger.info("🔧 VERIFICANDO ESTADO DE MIGRACIONES FLYWAY...")
+
+            val flyway = Flyway.configure()
+                .dataSource(dataSource)
+                .locations("classpath:db/migration")
+                .baselineOnMigrate(true)
+                .load()
+
+            // Obtener información del estado actual
+            val info = flyway.info()
+            logger.info("📋 MIGRACIONES FLYWAY - ESTADO ACTUAL:")
+
+            info.all().forEach { migration ->
+                logger.info("   - Versión: {} | Estado: {} | Descripción: {}",
+                    migration.version, migration.state, migration.description)
+            }
+
+            // Verificar si hay migraciones pendientes
+            val pending = info.pending()
+            if (pending.isNotEmpty()) {
+                logger.warn("⚠️  HAY {} MIGRACIONES PENDIENTES:", pending.size)
+                pending.forEach { migration ->
+                    logger.warn("   - PENDIENTE: {} - {}",
+                        migration.version, migration.description)
+                }
+
+                logger.info("🚀 EJECUTANDO MIGRACIONES PENDIENTES...")
+                val result = flyway.migrate()
+                logger.info("✅ MIGRACIONES EJECUTADAS: {} migraciones aplicadas",
+                    result.migrationsExecuted)
+            } else {
+                logger.info("✅ TODAS LAS MIGRACIONES ESTÁN AL DÍA")
+            }
+
+            // Verificar tablas después de migración
+            verifyTablesExist()
+
+        } catch (exception: Exception) {
+            logger.error("❌ ERROR EN MIGRACIONES FLYWAY: {}", exception.message, exception)
+        }
+    }
+
+    private fun verifyTablesExist() {
+        try {
+            dataSource.connection.use { connection ->
+                val metaData = connection.metaData
+                val tables = metaData.getTables(null, null, "users", arrayOf("TABLE"))
+
+                if (tables.next()) {
+                    logger.info("✅ TABLA 'users' CREADA EXITOSAMENTE EN LA BASE DE DATOS")
+
+                    // Contar registros para verificar que la tabla está funcional
+                    connection.createStatement().use { statement ->
+                        val resultSet = statement.executeQuery("SELECT COUNT(*) as total FROM users")
+                        if (resultSet.next()) {
+                            val count = resultSet.getInt("total")
+                            logger.info("📊 TABLA 'users' contiene {} registros", count)
+                        }
+                    }
+                } else {
+                    logger.error("❌ TABLA 'users' NO ENCONTRADA DESPUÉS DE MIGRACIONES")
+                }
+                tables.close()
+            }
+        } catch (exception: Exception) {
+            logger.error("❌ ERROR VERIFICANDO TABLAS: {}", exception.message)
+        }
+    }
+}

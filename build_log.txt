@@ -1,0 +1,29 @@
+﻿> Task :checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :processResources
+> Task :processTestResources NO-SOURCE
+
+> Task :compileKotlin FAILED
+.\gradlew : e: file:///C:/Users/gmflo/Documents/ProyectoAndroid/microsaap/src/main/kotlin/com/owlcode/microsaap/features/auth/infrastructure/security/BCryptPasswordHasher.kt:16:16 Return type mismatch: expected 'String', 
+actual 'String?'.
+En línea: 1 Carácter: 59
++ ... o\Documents\ProyectoAndroid\microsaap" ; .\gradlew build 2>&1 | Out-F ...
++                                              ~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (e: file:///C:/U...tual 'String?'.:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':compileKotlin'.
+> A failure occurred while executing org.jetbrains.kotlin.compilerRunner.GradleCompilerRunnerWithWorkers$GradleKotlinCompilerWorkAction
+   > Compilation error. See log for more details
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights from a Build Scan (powered by Develocity).
+> Get more help at https://help.gradle.org.
+
+BUILD FAILED in 2s
+2 actionable tasks: 2 executed

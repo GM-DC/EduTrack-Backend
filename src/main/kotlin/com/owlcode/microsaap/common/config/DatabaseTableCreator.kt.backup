@@ -1,0 +1,58 @@
+package com.owlcode.microsaap.common.config
+
+import org.slf4j.LoggerFactory
+import org.springframework.boot.CommandLineRunner
+import org.springframework.stereotype.Component
+import org.springframework.core.annotation.Order
+import javax.sql.DataSource
+
+/**
+ * Respaldo para crear tablas si Flyway no funciona
+ */
+@Component
+@Order(100)
+class DatabaseTableCreator(
+    private val dataSource: DataSource
+) : CommandLineRunner {
+
+    private val logger = LoggerFactory.getLogger(DatabaseTableCreator::class.java)
+
+    override fun run(vararg args: String?) {
+        logger.info("🔧 VERIFICANDO EXISTENCIA DE TABLA 'users'...")
+
+        try {
+            dataSource.connection.use { connection ->
+                val metaData = connection.metaData
+                val tables = metaData.getTables(null, null, "users", arrayOf("TABLE"))
+
+                if (!tables.next()) {
+                    logger.warn("⚠️  TABLA 'users' NO EXISTE - CREANDO...")
+
+                    val createSQL = """
+                        CREATE TABLE users (
+                            id BIGINT AUTO_INCREMENT PRIMARY KEY,
+                            email VARCHAR(255) NOT NULL UNIQUE,
+                            password_hash VARCHAR(255) NOT NULL,
+                            first_name VARCHAR(50) NOT NULL,
+                            last_name VARCHAR(50) NOT NULL,
+                            is_active BOOLEAN NOT NULL DEFAULT TRUE,
+                            created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                            updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+                        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+                    """.trimIndent()
+
+                    connection.createStatement().use { statement ->
+                        statement.execute(createSQL)
+                        logger.info("✅ TABLA 'users' CREADA EXITOSAMENTE")
+                    }
+                } else {
+                    logger.info("✅ TABLA 'users' YA EXISTE")
+                }
+                tables.close()
+            }
+        } catch (ex: Exception) {
+            logger.error("❌ ERROR: {}", ex.message)
+        }
+    }
+}
+
