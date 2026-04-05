@@ -3,8 +3,7 @@ package com.owlcode.microsaap.features.auth.presentation
 import com.owlcode.microsaap.common.response.ApiResponse
 import com.owlcode.microsaap.features.auth.application.dto.LoginCommand
 import com.owlcode.microsaap.features.auth.application.dto.RegisterCommand
-import com.owlcode.microsaap.features.auth.application.usecase.LoginUserUseCase
-import com.owlcode.microsaap.features.auth.application.usecase.RegisterUserUseCase
+import com.owlcode.microsaap.features.auth.application.service.AuthApplicationService
 import com.owlcode.microsaap.features.auth.presentation.request.LoginRequest
 import com.owlcode.microsaap.features.auth.presentation.request.RegisterRequest
 import com.owlcode.microsaap.features.auth.presentation.response.AuthResponse
@@ -15,12 +14,12 @@ import org.springframework.web.bind.annotation.*
 
 /**
  * Controlador REST para autenticación
+ * CORREGIDO: Ahora depende del Application Service, no de casos de uso directamente
  */
 @RestController
 @RequestMapping("/api/auth")
 class AuthController(
-    private val registerUserUseCase: RegisterUserUseCase,
-    private val loginUserUseCase: LoginUserUseCase
+    private val authApplicationService: AuthApplicationService
 ) {
 
     @PostMapping("/register")
@@ -33,7 +32,7 @@ class AuthController(
             lastName = request.lastName
         )
 
-        val result = registerUserUseCase.execute(command)
+        val result = authApplicationService.register(command)
 
         val response = AuthResponse(
             token = result.token,
@@ -58,7 +57,7 @@ class AuthController(
             password = request.password
         )
 
-        val result = loginUserUseCase.execute(command)
+        val result = authApplicationService.login(command)
 
         val response = AuthResponse(
             token = result.token,
