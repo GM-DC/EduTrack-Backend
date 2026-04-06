@@ -14,6 +14,4 @@ class MicrosaapApplication
 
 fun main(args: Array<String>) {
 	runApplication<MicrosaapApplication>(*args)
-
-    fun hola( ){ println("hola")    }
 }
