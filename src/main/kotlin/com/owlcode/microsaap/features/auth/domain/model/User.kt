@@ -13,6 +13,7 @@ data class User(
     val passwordHash: String,
     val firstName: String,
     val lastName: String,
+    val role: UserRole = UserRole.STUDENT,
     val isActive: Boolean = true,
     val createdAt: LocalDateTime?,
     val updatedAt: LocalDateTime?
@@ -65,7 +66,8 @@ data class User(
             email: String,
             passwordHash: String,
             firstName: String,
-            lastName: String
+            lastName: String,
+            role: UserRole = UserRole.STUDENT
         ): User {
             return User(
                 id = null,
@@ -73,6 +75,7 @@ data class User(
                 passwordHash = passwordHash,
                 firstName = firstName.trim(),
                 lastName = lastName.trim(),
+                role = role,
                 createdAt = null,
                 updatedAt = null
             )

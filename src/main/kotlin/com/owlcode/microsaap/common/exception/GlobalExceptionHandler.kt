@@ -3,13 +3,18 @@ package com.owlcode.microsaap.common.exception
 import com.owlcode.microsaap.common.response.ApiResponse
 import com.owlcode.microsaap.common.response.ErrorResponse
 import com.owlcode.microsaap.features.auth.domain.exception.*
+import org.slf4j.LoggerFactory
+import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
+import org.springframework.http.converter.HttpMessageNotReadableException
 import org.springframework.validation.FieldError
+import org.springframework.web.HttpRequestMethodNotSupportedException
 import org.springframework.web.bind.MethodArgumentNotValidException
 import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.RestControllerAdvice
 import org.springframework.web.context.request.WebRequest
+import org.springframework.web.servlet.resource.NoResourceFoundException
 import java.time.LocalDateTime
 
 /**
@@ -17,6 +22,8 @@ import java.time.LocalDateTime
  */
 @RestControllerAdvice
 class GlobalExceptionHandler {
+
+    private val log = LoggerFactory.getLogger(GlobalExceptionHandler::class.java)
 
     @ExceptionHandler(EntityNotFoundException::class)
     fun handleEntityNotFound(
@@ -212,11 +219,115 @@ class GlobalExceptionHandler {
             .body(ApiResponse.error(errorResponse))
     }
 
+    @ExceptionHandler(DataIntegrityViolationException::class)
+    fun handleDataIntegrity(
+        ex: DataIntegrityViolationException,
+        request: WebRequest
+    ): ResponseEntity<ApiResponse<Nothing>> {
+        log.error("DataIntegrityViolationException: ${ex.message}", ex)
+        val errorResponse = ErrorResponse(
+            timestamp = LocalDateTime.now(),
+            status = HttpStatus.CONFLICT.value(),
+            error = "Data Integrity Violation",
+            message = "Violación de integridad de datos: verifique que el recurso referenciado exista (ej. courseId)",
+            path = request.getDescription(false)
+        )
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+            .body(ApiResponse.error(errorResponse))
+    }
+
+    @ExceptionHandler(NoResourceFoundException::class)
+    fun handleNoResourceFound(
+        ex: NoResourceFoundException,
+        request: WebRequest
+    ): ResponseEntity<ApiResponse<Nothing>> {
+        log.warn("NoResourceFoundException: ${ex.message}")
+        val errorResponse = ErrorResponse(
+            timestamp = LocalDateTime.now(),
+            status = HttpStatus.NOT_FOUND.value(),
+            error = "Not Found",
+            message = "El endpoint '${ex.resourcePath}' no existe. Revisa la URL y el método HTTP.",
+            path = request.getDescription(false)
+        )
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+            .body(ApiResponse.error(errorResponse))
+    }
+
+    @ExceptionHandler(HttpRequestMethodNotSupportedException::class)
+    fun handleMethodNotSupported(
+        ex: HttpRequestMethodNotSupportedException,
+        request: WebRequest
+    ): ResponseEntity<ApiResponse<Nothing>> {
+        log.warn("HttpRequestMethodNotSupportedException: ${ex.message}")
+        val allowed = ex.supportedHttpMethods?.joinToString(", ") ?: "desconocido"
+        val errorResponse = ErrorResponse(
+            timestamp = LocalDateTime.now(),
+            status = HttpStatus.METHOD_NOT_ALLOWED.value(),
+            error = "Method Not Allowed",
+            message = "El método '${ex.method}' no está permitido para esta ruta. Métodos permitidos: $allowed",
+            path = request.getDescription(false)
+        )
+        return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED)
+            .body(ApiResponse.error(errorResponse))
+    }
+
+    @ExceptionHandler(HttpMessageNotReadableException::class)
+    fun handleNotReadable(
+        ex: HttpMessageNotReadableException,
+        request: WebRequest
+    ): ResponseEntity<ApiResponse<Nothing>> {
+        log.warn("HttpMessageNotReadableException: ${ex.message}")
+        val errorResponse = ErrorResponse(
+            timestamp = LocalDateTime.now(),
+            status = HttpStatus.BAD_REQUEST.value(),
+            error = "Bad Request",
+            message = "JSON inválido o valor de enum no reconocido. Verifica los valores permitidos.",
+            path = request.getDescription(false)
+        )
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+            .body(ApiResponse.error(errorResponse))
+    }
+
+    @ExceptionHandler(IllegalStateException::class)
+    fun handleIllegalState(
+        ex: IllegalStateException,
+        request: WebRequest
+    ): ResponseEntity<ApiResponse<Nothing>> {
+        log.warn("IllegalStateException: ${ex.message}")
+        val errorResponse = ErrorResponse(
+            timestamp = LocalDateTime.now(),
+            status = HttpStatus.NOT_FOUND.value(),
+            error = "Not Found",
+            message = ex.message ?: "Recurso no encontrado",
+            path = request.getDescription(false)
+        )
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+            .body(ApiResponse.error(errorResponse))
+    }
+
+    @ExceptionHandler(IllegalArgumentException::class)
+    fun handleIllegalArgument(
+        ex: IllegalArgumentException,
+        request: WebRequest
+    ): ResponseEntity<ApiResponse<Nothing>> {
+        log.warn("IllegalArgumentException: ${ex.message}")
+        val errorResponse = ErrorResponse(
+            timestamp = LocalDateTime.now(),
+            status = HttpStatus.BAD_REQUEST.value(),
+            error = "Bad Request",
+            message = ex.message ?: "Argumento inválido",
+            path = request.getDescription(false)
+        )
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+            .body(ApiResponse.error(errorResponse))
+    }
+
     @ExceptionHandler(Exception::class)
     fun handleGeneral(
         ex: Exception,
         request: WebRequest
     ): ResponseEntity<ApiResponse<Nothing>> {
+        log.error("Unhandled exception [${ex::class.simpleName}]: ${ex.message}", ex)
         val errorResponse = ErrorResponse(
             timestamp = LocalDateTime.now(),
             status = HttpStatus.INTERNAL_SERVER_ERROR.value(),
@@ -224,7 +335,6 @@ class GlobalExceptionHandler {
             message = "Error interno del servidor",
             path = request.getDescription(false)
         )
-
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
             .body(ApiResponse.error(errorResponse))
     }

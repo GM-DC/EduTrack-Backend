@@ -9,6 +9,7 @@ import java.nio.charset.StandardCharsets
 import java.time.Instant
 import java.util.*
 import javax.crypto.SecretKey
+import org.slf4j.LoggerFactory
 
 /**
  * Servicio para manejo de tokens JWT
@@ -17,8 +18,9 @@ import javax.crypto.SecretKey
 class JwtTokenService(
     private val jwtProperties: JwtProperties
 ) {
-
+    private val logger = LoggerFactory.getLogger(JwtTokenService::class.java)
     private val secretKey: SecretKey by lazy {
+        logger.info("[DEBUG] Clave secreta JWT usada por backend: ${jwtProperties.secret}")
         Keys.hmacShaKeyFor(jwtProperties.secret.toByteArray(StandardCharsets.UTF_8))
     }
 
@@ -40,7 +42,13 @@ class JwtTokenService(
     }
 
     fun extractUserId(token: String): Long {
-        return extractClaims(token).get("userId", Long::class.java)
+        val value = extractClaims(token)["userId"]
+        return when (value) {
+            is Long -> value
+            is Int -> value.toLong()
+            is Number -> value.toLong()
+            else -> throw IllegalArgumentException("userId no es un número válido en el token")
+        }
     }
 
     fun extractExpiration(token: String): Date {

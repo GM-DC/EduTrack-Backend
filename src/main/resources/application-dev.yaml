@@ -22,6 +22,8 @@ spring:
         format_sql: true
         show_sql: true
         use_sql_comments: true
+        # Necesario para que Hibernate genere DDL compatible con H2
+        dialect: org.hibernate.dialect.H2Dialect
 
   flyway:
     enabled: false

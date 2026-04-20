@@ -30,7 +30,7 @@ class JwtRequestFilter(
 
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
             val token = authHeader.substring(7)
-
+            logger.info("[DEBUG] Token recibido en backend: $token")
             try {
                 if (tokenProvider.isTokenValid(token)) {
                     val userId = tokenProvider.extractUserId(token)

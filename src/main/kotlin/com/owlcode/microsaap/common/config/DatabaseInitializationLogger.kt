@@ -6,7 +6,6 @@ import org.springframework.context.event.EventListener
 import org.springframework.stereotype.Component
 import org.springframework.core.annotation.Order
 import javax.sql.DataSource
-import java.sql.DatabaseMetaData
 
 /**
  * Componente para verificar y loggear la creación exitosa de tablas
@@ -23,59 +22,50 @@ class DatabaseInitializationLogger(
     fun logDatabaseStatus() {
         try {
             dataSource.connection.use { connection ->
-                val metaData: DatabaseMetaData = connection.metaData
+                val catalog = connection.catalog   // = "microsaap_db"
+                logger.info("=== VERIFICACIÓN DE BASE DE DATOS (schema: $catalog) ===")
 
-                logger.info("=== VERIFICACIÓN DE BASE DE DATOS ===")
-                logger.info("Database URL: {}", metaData.url)
-                logger.info("Database Product: {}", metaData.databaseProductName)
-                logger.info("Database Version: {}", metaData.databaseProductVersion)
-
-                // Verificar si la tabla users existe
-                val tables = metaData.getTables(null, null, "USERS", arrayOf("TABLE"))
-
-                if (tables.next()) {
-                    logger.info("✅ TABLA 'USERS' ENCONTRADA Y VERIFICADA EXITOSAMENTE")
-
-                    // Obtener información de columnas
-                    val columns = metaData.getColumns(null, null, "USERS", null)
-                    logger.info("📋 COLUMNAS DE LA TABLA 'USERS':")
-
-                    while (columns.next()) {
-                        val columnName = columns.getString("COLUMN_NAME")
-                        val columnType = columns.getString("TYPE_NAME")
-                        val columnSize = columns.getInt("COLUMN_SIZE")
-                        val nullable = columns.getString("IS_NULLABLE")
-
-                        logger.info("   - {}: {} ({}) - Nullable: {}",
-                            columnName, columnType, columnSize, nullable)
-                    }
-                    columns.close()
-
-                    // Verificar índices
-                    val indexes = metaData.getIndexInfo(null, null, "USERS", false, true)
-                    logger.info("📋 ÍNDICES DE LA TABLA 'USERS':")
-
-                    while (indexes.next()) {
-                        val indexName = indexes.getString("INDEX_NAME")
-                        val columnName = indexes.getString("COLUMN_NAME")
-                        val unique = !indexes.getBoolean("NON_UNIQUE")
-
-                        if (indexName != null) {
-                            logger.info("   - Índice '{}' en columna '{}' - Único: {}",
-                                indexName, columnName, unique)
-                        }
-                    }
-                    indexes.close()
-
-                } else {
-                    logger.error("❌ TABLA 'USERS' NO ENCONTRADA - VERIFICAR CONFIGURACIÓN DDL")
+                // Listar TODAS las tablas del schema de la app
+                val tables = connection.metaData.getTables(catalog, null, "%", arrayOf("TABLE"))
+                val tableNames = mutableListOf<String>()
+                while (tables.next()) {
+                    tableNames += tables.getString("TABLE_NAME")
                 }
                 tables.close()
 
-                logger.info("=== FIN VERIFICACIÓN DE BASE DE DATOS ===")
+                if (tableNames.isEmpty()) {
+                    logger.error("❌ NO SE ENCONTRARON TABLAS en '$catalog'. Flyway no ejecutó las migraciones.")
+                } else {
+                    logger.info("✅ Tablas encontradas en '$catalog': $tableNames")
+
+                    val expected = listOf("users", "courses", "clases", "tareas", "examenes", "eventos_personales")
+                    val missing = expected.filter { it !in tableNames }
+                    if (missing.isEmpty()) {
+                        logger.info("✅ Todas las tablas esperadas existen.")
+                    } else {
+                        logger.warn("⚠️  Tablas faltantes: $missing")
+                    }
+                }
+
+                // Verificar flyway_schema_history
+                if ("flyway_schema_history" in tableNames) {
+                    connection.createStatement().use { stmt ->
+                        stmt.executeQuery("SELECT version, description, success FROM flyway_schema_history ORDER BY installed_rank")
+                            .use { rs ->
+                                logger.info("📋 Estado de migraciones Flyway:")
+                                while (rs.next()) {
+                                    logger.info("   V${rs.getString("version")} - ${rs.getString("description")} - OK: ${rs.getBoolean("success")}")
+                                }
+                            }
+                    }
+                } else {
+                    logger.warn("⚠️  Tabla 'flyway_schema_history' no encontrada — Flyway nunca ejecutó.")
+                }
+
+                logger.info("=== FIN VERIFICACIÓN ===")
             }
-        } catch (exception: Exception) {
-            logger.error("❌ ERROR AL VERIFICAR BASE DE DATOS: {}", exception.message, exception)
+        } catch (e: Exception) {
+            logger.error("❌ Error al verificar base de datos: ${e.message}", e)
         }
     }
 }

@@ -21,21 +21,9 @@ object ValidationUtils {
     /**
      * Valida contraseña segura:
      * - Mínimo 8 caracteres
-     * - Al menos una letra minúscula
-     * - Al menos una letra mayúscula
-     * - Al menos un dígito
-     * - Al menos un carácter especial
      */
-    fun isValidPassword(password: String?): Boolean {
-        if (password == null || password.length < 8) return false
-
-        val hasLowerCase = password.any { it.isLowerCase() }
-        val hasUpperCase = password.any { it.isUpperCase() }
-        val hasDigit = password.any { it.isDigit() }
-        val hasSpecialChar = password.any { !it.isLetterOrDigit() }
-
-        return hasLowerCase && hasUpperCase && hasDigit && hasSpecialChar
-    }
+    fun isValidPassword(password: String?): Boolean =
+        password?.let { it.isNotBlank() && it.length >= 8 } ?: false
 
     /**
      * Valida que un string no esté vacío después de trim

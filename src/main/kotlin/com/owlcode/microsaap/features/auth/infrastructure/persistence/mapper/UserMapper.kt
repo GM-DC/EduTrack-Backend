@@ -21,6 +21,7 @@ class UserMapper {
             firstName = user.firstName,
             lastName = user.lastName,
             isActive = user.isActive,
+            role = user.role,
             createdAt = user.createdAt,
             updatedAt = user.updatedAt
         )
@@ -37,6 +38,7 @@ class UserMapper {
             firstName = entity.firstName,
             lastName = entity.lastName,
             isActive = entity.isActive,
+            role = entity.role,
             createdAt = entity.createdAt,
             updatedAt = entity.updatedAt
         )

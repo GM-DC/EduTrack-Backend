@@ -13,7 +13,8 @@ class BCryptPasswordHasher(
 ) : PasswordHasher {
 
     override fun hash(plainPassword: String): String {
-        return passwordEncoder.encode(plainPassword) ?: throw IllegalStateException("Error encoding password")
+        return passwordEncoder.encode(plainPassword)
+            ?: throw IllegalStateException("Error al codificar la contraseña")
     }
 
     override fun verify(plainPassword: String, hashedPassword: String): Boolean {

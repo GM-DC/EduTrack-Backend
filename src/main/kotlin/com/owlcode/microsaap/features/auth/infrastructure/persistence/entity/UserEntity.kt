@@ -1,5 +1,6 @@
 package com.owlcode.microsaap.features.auth.infrastructure.persistence.entity
 
+import com.owlcode.microsaap.features.auth.domain.model.UserRole
 import jakarta.persistence.*
 import org.hibernate.annotations.CreationTimestamp
 import org.hibernate.annotations.UpdateTimestamp
@@ -35,6 +36,10 @@ data class UserEntity(
 
     @Column(nullable = false, name = "is_active")
     val isActive: Boolean = true,
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    val role: UserRole = UserRole.STUDENT,
 
     @CreationTimestamp
     @Column(nullable = false, name = "created_at")

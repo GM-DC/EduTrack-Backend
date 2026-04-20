@@ -8,21 +8,21 @@ spring:
     password: admin
     driver-class-name: com.mysql.cj.jdbc.Driver
 
+  flyway:
+    enabled: false   # Gestionado explícitamente por FlywayConfig.kt
+
   jpa:
     hibernate:
       ddl-auto: none
     show-sql: true
+    open-in-view: false
     properties:
       hibernate:
         format_sql: true
 
-  flyway:
-    enabled: true
-    locations: classpath:db/migration
-    baseline-on-migrate: true
-    baseline-version: 0
-    validate-on-migrate: true
-    clean-disabled: false
+
+server:
+  port: 8080
 
 app:
   jwt:
@@ -31,8 +31,7 @@ app:
 
 logging:
   level:
-    com.owlcode.microsaap: INFO
+    com.owlcode.microsaap: DEBUG
     org.springframework.security: WARN
     org.flywaydb: DEBUG
-    org.springframework.boot.autoconfigure.flyway: DEBUG
 
