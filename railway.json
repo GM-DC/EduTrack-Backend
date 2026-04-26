@@ -1,0 +1,13 @@
+{
+  "$schema": "https://railway.app/railway.schema.json",
+  "build": {
+    "builder": "NIXPACKS",
+    "buildCommand": "chmod +x ./gradlew && ./gradlew bootJar"
+  },
+  "deploy": {
+    "startCommand": "java -jar build/libs/app.jar --spring.profiles.active=prod",
+    "healthcheckPath": "/actuator/health",
+    "restartPolicyType": "ON_FAILURE"
+  }
+}
+
