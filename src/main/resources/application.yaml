@@ -2,6 +2,14 @@ spring:
   application:
     name: microsaap
 
+  web:
+    resources:
+      cache:
+        period: 0
+        cachecontrol:
+          no-store: true
+          must-revalidate: true
+
   datasource:
     url: jdbc:mysql://localhost:3306/microsaap_db?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
     username: root
