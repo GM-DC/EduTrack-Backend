@@ -6,22 +6,33 @@ import io.jsonwebtoken.Jwts
 import io.jsonwebtoken.security.Keys
 import org.springframework.stereotype.Service
 import java.nio.charset.StandardCharsets
+import java.security.MessageDigest
 import java.time.Instant
 import java.util.*
 import javax.crypto.SecretKey
 import org.slf4j.LoggerFactory
 
 /**
- * Servicio para manejo de tokens JWT
+ * Servicio para manejo de tokens JWT.
+ * El secret se normaliza con SHA-256 → siempre 256 bits, evita WeakKeyException.
  */
 @Service
 class JwtTokenService(
     private val jwtProperties: JwtProperties
 ) {
     private val logger = LoggerFactory.getLogger(JwtTokenService::class.java)
+
     private val secretKey: SecretKey by lazy {
-        logger.info("[DEBUG] Clave secreta JWT usada por backend: ${jwtProperties.secret}")
-        Keys.hmacShaKeyFor(jwtProperties.secret.toByteArray(StandardCharsets.UTF_8))
+        val rawSecret = jwtProperties.secret
+        if (rawSecret.isBlank()) {
+            logger.error("❌ JWT_SECRET no está configurado. Agrégalo como variable en Railway.")
+            throw IllegalStateException("JWT_SECRET no está configurado")
+        }
+        // SHA-256 normaliza a exactamente 256 bits sin importar la longitud del secret
+        val keyBytes = MessageDigest.getInstance("SHA-256")
+            .digest(rawSecret.toByteArray(StandardCharsets.UTF_8))
+        logger.info("✅ JWT SecretKey inicializada (${keyBytes.size * 8} bits)")
+        Keys.hmacShaKeyFor(keyBytes)
     }
 
     fun generateToken(userId: Long, email: String): String {
